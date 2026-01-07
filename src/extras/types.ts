@@ -9,7 +9,7 @@ export enum WeatherDescription {
   Snow
 }
 
-export interface SevenDayForecastItem {
+export interface DailyForecastItem {
   temperature: {
     high: number,
     low: number
@@ -43,5 +43,5 @@ export interface CityData {
 export interface WeatherData {
   current: CurrentWeatherConditions,
   hourly: HourlyForecastItem[],
-  daily: SevenDayForecastItem[]
+  daily: DailyForecastItem[]
 }

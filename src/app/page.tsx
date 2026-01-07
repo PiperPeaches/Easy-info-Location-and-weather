@@ -1,10 +1,10 @@
 'use client'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { WeatherData, CityData, HourlyForecastItem, SevenDayForecastItem, Weekday } from '../extras/types.ts'
+import type { WeatherData, CityData, HourlyForecastItem, DailyForecastItem, Weekday } from '../extras/types.ts'
 import { WeatherDescription } from '../extras/types.ts'
 
-import { faSun,faCaretDown, faCaretUp, faCloud, faWind, faCloudSun, faCloudRain, faCloudBolt, faSnowflake, faMap, faCog, faBook} from '@fortawesome/free-solid-svg-icons'
+import { faSun,faCaretDown, faFaceGrinSquintTears, faCaretUp, faSmog, faTemperature0, faClock, faCloud, faWind, faCloudSun, faCloudRain, faCloudBolt, faSnowflake, faMap, faCog, faBook, faTemperatureEmpty} from '@fortawesome/free-solid-svg-icons'
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -13,7 +13,9 @@ export default function Home() {
   const [ searchCityName, setSearchCityName ] = useState('')
   const [ city, setCity ] = useState<CityData>()
   const [ loading, setLoading ] = useState(true)
-  const [ metric, setMetric ] = useState(false)
+  const [ tempUnit, setTempUnit ] = useState<'F' | 'C'>('C')
+  const [ speedUnit, setSpeedUnit ] = useState<'mph' | 'km/h'>('km/h')
+  const [ clockFormat, setClockFormat ] = useState<'24' | '12'>('24')
   const [ weatherData, setWeatherData ] = useState<WeatherData>({
     hourly: [],
     daily: [],
@@ -107,7 +109,7 @@ export default function Home() {
     switch (desc) {
       case WeatherDescription.Clear: return <FontAwesomeIcon icon={faSun}/>
       case WeatherDescription.Cloudy: return <FontAwesomeIcon icon={faCloud}/>
-      case WeatherDescription.Fog: return <FontAwesomeIcon icon={faWind}/>
+      case WeatherDescription.Fog: return <FontAwesomeIcon icon={faSmog}/>
       case WeatherDescription.Overcast: return <FontAwesomeIcon icon={faCloudSun}/>
       case WeatherDescription.Rain: return <FontAwesomeIcon icon={faCloudRain}/>
       case WeatherDescription.Snow: return <FontAwesomeIcon icon={faSnowflake}/>
@@ -115,17 +117,36 @@ export default function Home() {
     }
   }
 
+  function timeFormatFunction(hour: number): string {
+    if (clockFormat == '24') {
+      return hour.toString().padStart(2, '0') + ':00'
+    }
+
+    if (hour == 0) {
+      return '12:00 AM'
+    }
+
+    if (hour < 12) {
+      return hour.toString() + ':00 AM'
+    } else if (hour == 12) {
+      return '12:00 PM'
+    }
+
+    return (hour - 12).toString() + ':00 PM'
+  }
+
   async function fetchWeather() {
     if (!city) return
 
     setLoading(true)
 
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.location[0]}&longitude=${city.location[1]}&daily=uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&hourly=temperature_2m,weather_code&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&temperature_unit=${metric ? 'celcius' : 'fahrenheit'}&wind_speed_unit=${metric ? 'kph' : 'mph'}&precipitation_unit=${metric ? 'centimeter' : 'inch'}&timezone=auto`)
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${city.location[0]}&longitude=${city.location[1]}&daily=uv_index_max,temperature_2m_max,temperature_2m_min,weather_code&hourly=temperature_2m,weather_code&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&temperature_unit=${tempUnit == 'C' ? 'celsius' : 'fahrenheit'}&wind_speed_unit=${speedUnit == 'km/h' ? 'kmh' : 'mph'}&precipitation_unit=${speedUnit == 'km/h' ? 'mm' : 'inch'}&timezone=auto`)
     const data = await res.json()
+    console.log(data)
 
     const uvIndex = data.daily.uv_index_max[0]
     const hourly: HourlyForecastItem[] = []
-    const daily: SevenDayForecastItem[] = []
+    const daily: DailyForecastItem[] = []
     const hours = new Date().getHours()
 
     for (let i = hours; i < (hours + 7); i++) {
@@ -169,7 +190,6 @@ export default function Home() {
         const location = await captureIpLocation()
 
         setCity(location)
-        setMetric(location.country != 'United States')
 
         return
       }
@@ -180,7 +200,6 @@ export default function Home() {
         const location = await captureIpLocation()
 
         setCity(location)
-        setMetric(location.country != 'United States')
 
         return
       }
@@ -193,7 +212,6 @@ export default function Home() {
         const location = await captureIpLocation()
 
         setCity(location)
-        setMetric(location.country != 'United States')
         
         return
       }
@@ -202,7 +220,6 @@ export default function Home() {
       const cdata: CityData = { town, state, country, location: [ latitude, longitude ] }
       
       setCity(cdata)
-      setMetric(country != 'United States')
     }
 
     run()
@@ -210,7 +227,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchWeather()
-  }, [ city ])
+  }, [ city, tempUnit, speedUnit ])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -222,14 +239,40 @@ export default function Home() {
     setSearchCityName(e.target.value)
   }
 
+  function toggleClockFormat() {
+    if (clockFormat == '12') {
+      setClockFormat('24')
+    } else {
+      setClockFormat('12')
+    }
+  }
+
+  function toggleSpeedUnit() {
+    if (speedUnit == 'mph') {
+      setSpeedUnit('km/h')
+    } else {
+      setSpeedUnit('mph')
+    }
+  }
+
+  function toggleTempUnit() {
+    if (tempUnit == 'F') {
+      setTempUnit('C')
+    } else {
+      setTempUnit('F')
+    }
+  }
+
   return (
     <div className='flex flex-col md:flex-row min-h-screen p-5 font-sans bg-slate-800 gap-3'>
       <div className='flex flex-col gap-3 min-h-screen justify-between w-[8%] py-10 rounded-xl bg-slate-700'>
         <div className='flex flex-col items-center gap-3 justify-start h-full'>
           <Link href='/' className='flex flex-col items-center'><FontAwesomeIcon icon={faCloud} className='text-2xl text-slate-300' /><p>Weather</p></Link>
           <Link href='/map' className='flex flex-col items-center'><FontAwesomeIcon icon={faMap} className='text-2xl text-slate-300' /><p>Map</p></Link>
+        <Link href='/dailymeme' className='flex flex-col items-center'><FontAwesomeIcon icon={faFaceGrinSquintTears} className='text-2xl text-slate-300' /><p>meme</p></Link>
           <Link href='/info' className='flex flex-col items-center'><FontAwesomeIcon icon={faBook} className='text-2xl text-slate-300' /><p>Info</p></Link>
         </div>
+
         <div className='flex flex-col items-center justify-end h-full'>
           <Link href='/settings' className='flex flex-col items-center'><FontAwesomeIcon icon={faCog} className='text-2xl text-slate-300' />Settings</Link>
         </div>
@@ -238,27 +281,36 @@ export default function Home() {
       {/* Left */}
       <div className='flex flex-col gap-3 min-h-screen w-full'>
         {/* Search bar */}
-        <form onSubmit={handleSubmit}>
-          <input type='text' placeholder='Enter city name' className='bg-slate-700 rounded-xl p-2 w-full placeholder-slate-500' onChange={handleCityNameChange} />
-        </form>
-        
+        <div className='w-full flex flex-row gap-2'>
+          <form onSubmit={handleSubmit} className='w-full'>
+            <input type='text' placeholder='Enter city name' className='bg-slate-700 rounded-xl p-2 w-full placeholder-slate-500' onChange={handleCityNameChange} />
+          </form>
+
+          <button onClick={toggleClockFormat} className='bg-slate-700 rounded-xl p-2 font-bold w-20 h-10 gap-2 flex justify-center items-center'><FontAwesomeIcon icon={faClock}/>{clockFormat}</button>
+          <button onClick={toggleSpeedUnit} className='bg-slate-700 rounded-xl p-2 font-bold w-20 h-10 gap-2'>{speedUnit.toUpperCase()}</button>
+          <button onClick={toggleTempUnit} className='bg-slate-700 rounded-xl p-2 font-bold w-20 h-10 flex justify-center items-center'><FontAwesomeIcon icon={faTemperature0}/>°{tempUnit}</button>
+        </div>
+
         {/* Main content */}
-        <div className='flex justify-center rounded-xl mt-3 p-5 h-full bg-linear-to-t from-blue-500 to-blue-400'>
-          <div className='flex justify-center items-center '>
+        <div className='flex justify-center rounded-xl p-5 h-full bg-linear-to-t from-blue-500 to-blue-400'>
+          <div className='flex justify-center gap-3 items-center '>
             <div>
-              <p className='text-9xl font-bold'>⛅</p>
+              <p className='text-9xl font-bold'>{weatherDescriptionToEmoji(weatherData.current.description)}</p>
             </div>
+
             <div>
               <p className='text-2xl font-bold text-slate-300'>{!loading ? `${city?.town}, ${city?.state}` : 'Loading...'}</p>
+
               <p className='text-6xl font-bold'>
-                {!loading ? `${weatherData.current.temperature}°${metric ? 'C' : 'F'}` : 'Loading...'}
+                {!loading ? `${weatherData.current.temperature}°${tempUnit}` : 'Loading...'}
                 <span className='text-2xl font-bold text-stone-300'>
                   <FontAwesomeIcon icon={faCaretUp}/>
-                  {!loading ? `${weatherData.daily[0].temperature.high}°${metric ? 'C' : 'F'}` : 'Loading...'} /
+                  {!loading ? `${weatherData.daily[0].temperature.high}°${tempUnit}` : 'Loading...'} /
                   <FontAwesomeIcon icon={faCaretDown}/>
-                  {!loading ? `${weatherData.daily[0].temperature.low}°${metric ? 'C' : 'F'}` : 'Loading...'}
+                  {!loading ? `${weatherData.daily[0].temperature.low}°${tempUnit}` : 'Loading...'}
                 </span>
               </p>
+
               <p className='text-2xl text-slate-300 font-bold'>Rain Chance: {!loading ? `${weatherData.current.rainChance}%` : 'Loading...'}</p>
             </div>
           </div>
@@ -267,9 +319,9 @@ export default function Home() {
         {/* Todays Forecast */}
         <div className='flex flex-row rounded-xl bg-slate-700 p-5 gap-3 h-2/3 min-h-50 w-full'>
           {!loading ? weatherData.hourly.map((itm, i) => <div key={i} className={`h-full w-full flex-col items-center justify-between py-5 flex rounded-xl hover:bg-slate-500 hover:w-[125%] transition-all ${i == 0 ? 'bg-linear-to-t from-blue-500 to-blue-400' : 'bg-slate-600'}`}>
-            <p className={`font-bold text-md ${i == 0 ? 'text-slate-300' : 'text-slate-400'}`}>{itm.time}:00</p>
+            <p className={`font-bold text-md ${i == 0 ? 'text-slate-300' : 'text-slate-400'}`}>{timeFormatFunction(itm.time)}</p>
             <p className='text-5xl'>{weatherDescriptionToEmoji(itm.description)}</p>
-            <p className='text-2xl font-bold'>{itm.temperature}°{metric ? 'C' : 'F'}</p>
+            <p className='text-2xl font-bold'>{itm.temperature}°{tempUnit}</p>
             <p className='text-2xl text-slate-300'>{weatherDescriptionToString(itm.description)}</p>
           </div>) : 'Loading...'}
         </div>
@@ -282,7 +334,7 @@ export default function Home() {
           </div>
 
           <div className='bg-slate-600 flex justify-between px-12 gap-10 items-center text-slate-300 h-full w-full rounded-xl'>
-            <p className='text-3xl font-bold'>Windspeed: {!loading ? `${weatherData.current.windSpeed} ${metric ? 'km/h' : 'mph'}` : 'Loading...'}</p>
+            <p className='text-3xl font-bold'>Windspeed: {!loading ? `${weatherData.current.windSpeed} ${speedUnit}` : 'Loading...'}</p>
             <FontAwesomeIcon className='text-4xl' icon={faSun}/>
           </div>
 
@@ -301,9 +353,14 @@ export default function Home() {
       {/* Right */}
       <div className='flex flex-col rounded-xl bg-slate-700 h-screen w-full md:w-[60%]'>
         {/* Weekly Forecast */}
-        {weatherData.daily.map((itm, i) => <div key={i}>
-          {itm.weekday} // {weatherDescriptionToString(itm.description)} // {itm.temperature.high}-{itm.temperature.low}
-        </div>)}
+        {!loading ? weatherData.daily.map((itm, i) => <div className='bg-slate-600 rounded-xl p-5 m-2 flex-row h-full flex items-center font-bold' key={i}>
+          <p className='text-2xl w-full text-slate-400 justify-center items-center flex'>{itm.weekday}</p>
+          <p className='text-2xl w-full justify-center items-center gap-3 flex'>{weatherDescriptionToEmoji(itm.description)} {weatherDescriptionToString(itm.description)}</p>
+          <p className='text-xl text-slate-400 w-full justify-center items-center flex '>
+            {itm.temperature.high}°{tempUnit}/{itm.temperature.low}°{tempUnit}
+          </p>
+
+        </div>) : 'Loading...'}
       </div>
     </div>
   )

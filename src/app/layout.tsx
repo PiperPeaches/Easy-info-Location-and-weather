@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Two Easy Info | Weather',
+  title: 'Too Easy Info | Weather',
   description: 'A simple weather app so you can get the info you need, fast.'
 };
 
