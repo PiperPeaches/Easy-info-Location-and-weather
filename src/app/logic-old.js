@@ -1,9 +1,4 @@
-'use client'
-
-import { useState, useEffect } from 'react';
-
-export default function Home() {
-  const [ loading, setLoading ] = useState(true);
+const [ loading, setLoading ] = useState(true);
   const [ error, setError ] = useState(null);
   const [ weather, setWeather ] = useState(null);
   const [ location, setLocation ] = useState('');
@@ -65,31 +60,32 @@ export default function Home() {
     } finally {
       setLoading(false);
     };
-
   }
 
   useEffect(() => {
     const initLocation = async () => {
-      if ('geolocation' in navigator) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const { latitude, longitude } = position.coords;
-
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-            const data = await res.json();
-            const cityName = data.address.city || data.address.town || data.address.village || data.address.county || 'Unknown';
-
-            setLocation(cityName);
-            fetchWeather(latitude, longitude, cityName);
-          } catch {
-            fallbackToIpLocation();
-          }
-        }, () => {
-          fallbackToIpLocation();
-        });
-      } else {
+      if (!('geolocation' in navigator)) {
         fallbackToIpLocation();
+        
+        return
       }
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          const cityName = data.address.city || data.address.town || data.address.village || data.address.county || 'Unknown';
+
+          setLocation(cityName);
+          fetchWeather(latitude, longitude, cityName);
+        } catch {
+          fallbackToIpLocation();
+        }
+      }, () => {
+        fallbackToIpLocation();
+      });
     };
     
     initLocation()
@@ -110,6 +106,7 @@ export default function Home() {
   const searchHandler = async (e) => {
     e.preventDefault();
     if (!searchInput) return;
+
     try {
       setLoading(true);
       const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${searchInput}&count=1&language=en&format=json`);
@@ -130,28 +127,4 @@ export default function Home() {
   const currentStatus = weather ? getStatus(weather.current.temp) : {label: 'LOADING'};
   const integrityPercent = weather ? Math.min(Math.max((weather.current.temp /2800) *100, 100), 100) :0;
   const earthScalePercent = weather ? Math.min(Math.max(((weather.current.temp + 20) /140) *100,0),100) : 0;
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <div className="flex min-h-screen w-full mt-10">
-        <div className="flex flex-col items-center w-full">
-          <h1 className="font-bold text-6xl"> Useless Weather </h1>
-
-          <div className="p-4 bg-slate-900 border-b border-slate-700">
-            <form onSubmit={searchHandler} style={{ display: 'flex', gap: '10px' }}>
-
-              <input type="text" placeholder="Enter location..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} style={{}}/>
-              <button type="submit" style={{}}> GO </button>
-            </form>
-
-            {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
-          </div>
-
-          <p>{location || (loading ? 'LOADING' : weather.locationName)} is {currentStatus.label}</p>
-          <p>its also {loading ? 'LOADING' : getWindStatus(weather.current.wind)}</p>
-          <p>humidity is pretty {loading ? 'LOADING' : getHumidityStatus(weather.current.humidity)}</p>
-        </div>
-      </div>
-    </div>
-  )
-};
+  
