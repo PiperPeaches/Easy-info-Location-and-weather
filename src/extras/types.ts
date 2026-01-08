@@ -1,4 +1,8 @@
 export type Weekday = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday'
+export type TempUnit = 'F' | 'C'
+export type SpeedUnit = 'mph' | 'km/h'
+export type ClockFormat = '24' | '12'
+
 export enum WeatherDescription {
   Clear,
   Cloudy,

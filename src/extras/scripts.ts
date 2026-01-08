@@ -37,6 +37,7 @@ export function wmoToDescription(wmo: number): WeatherDescription {
     case 95: return WeatherDescription.Thunderstorm // 'Thunderstorm: Slight or moderate'
     case 96: return WeatherDescription.Thunderstorm // 'Thunderstorm with slight and heavy hail'
     case 99: return WeatherDescription.Thunderstorm
+
     default: return WeatherDescription.Clear
   }
 }
@@ -51,4 +52,28 @@ export function weatherDescriptionToString(desc: WeatherDescription): string {
     case WeatherDescription.Snow: return 'Snow'
     case WeatherDescription.Thunderstorm: return 'T-Storm'
   }
+}
+
+export async function getPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition((loc) => { resolve(loc) }, reject)
+  })
+}
+
+export function timeFormatFunction(hour: number, clockFormat: '24' | '12'): string {
+  if (clockFormat == '24') {
+    return hour.toString().padStart(2, '0') + ':00'
+  }
+
+  if (hour == 0) {
+    return '12:00 AM'
+  }
+
+  if (hour < 12) {
+    return hour.toString() + ':00 AM'
+  } else if (hour == 12) {
+    return '12:00 PM'
+  }
+
+  return (hour - 12).toString() + ':00 PM'
 }

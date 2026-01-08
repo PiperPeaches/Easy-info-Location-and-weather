@@ -1,24 +1,29 @@
 'use client'
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import type { WeatherData, CityData, HourlyForecastItem, DailyForecastItem, Weekday } from '../extras/types.ts'
-import { WeatherDescription } from '../extras/types.ts'
-import { wmoToDescription, weatherDescriptionToString, weekdayFromDate } from '@/extras/scripts.ts'
-
-import { faSun, faCaretDown, faLanguage, faFaceGrinSquintTears, faGlobe, faCaretUp, faSmog, faTemperature0, faClock, faCloud, faWind, faCloudSun, faCloudRain, faCloudBolt, faSnowflake, faMap, faCog, faBook, faTemperatureEmpty, faWater, faDroplet} from '@fortawesome/free-solid-svg-icons'
-
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
 
+import type { WeatherData, CityData, HourlyForecastItem, DailyForecastItem } from '../extras/types.ts'
+import { WeatherDescription } from '../extras/types.ts'
+import { wmoToDescription, weekdayFromDate, getPosition } from '@/extras/scripts.ts'
+
+import SearchBar from '@/components/home/searchbar.tsx'
+import MainContent from '@/components/home/maincontent.tsx'
+import HourlyForecast from '@/components/home/hourlyforecast.tsx'
+import ExtraInfo from '@/components/home/extrainfo.tsx'
+import DailyForecast from '@/components/home/dailyforecast.tsx'
+import Navbar from '@/components/generic/navbar.tsx'
+
 export default function Home() {
-  const [ searchCityName, setSearchCityName ] = useState('')
-  const [ city, setCity ] = useState<CityData>()
   const [ loading, setLoading ] = useState(true)
-  const [ inputActive, setInputActive ] = useState(false)
-  const [ searchCities, setSearchCities ] = useState<CityData[]>([]) // abcdefg
   const [ tempUnit, setTempUnit ] = useState<'F' | 'C'>('C')
   const [ speedUnit, setSpeedUnit ] = useState<'mph' | 'km/h'>('km/h')
   const [ clockFormat, setClockFormat ] = useState<'24' | '12'>('24')
+  const [ city, setCity ] = useState<CityData>({
+    town: 'New York (fallback)',
+    state: 'New York',
+    country: 'United States',
+    location: [ -74.0060, 40.7128 ]
+  })
   const [ weatherData, setWeatherData ] = useState<WeatherData>({
     hourly: [],
     daily: [],
@@ -47,42 +52,6 @@ export default function Home() {
     const { city, region, country_name, latitude, longitude } = await res.json()
 
     return { town: city, state: region, country: country_name, location: [ latitude, longitude ] }
-  }
-  
-  async function getPosition(): Promise<GeolocationPosition> {
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition((loc) => { resolve(loc) }, reject)
-    })
-  }
-
-  function weatherDescriptionToEmoji(desc: WeatherDescription): React.ReactElement {
-    switch (desc) {
-      case WeatherDescription.Clear: return <FontAwesomeIcon icon={faSun}/>
-      case WeatherDescription.Cloudy: return <FontAwesomeIcon icon={faCloud}/>
-      case WeatherDescription.Fog: return <FontAwesomeIcon icon={faSmog}/>
-      case WeatherDescription.Overcast: return <FontAwesomeIcon icon={faCloudSun}/>
-      case WeatherDescription.Rain: return <FontAwesomeIcon icon={faCloudRain}/>
-      case WeatherDescription.Snow: return <FontAwesomeIcon icon={faSnowflake}/>
-      case WeatherDescription.Thunderstorm: return <FontAwesomeIcon icon={faCloudBolt}/>
-    }
-  }
-
-  function timeFormatFunction(hour: number): string {
-    if (clockFormat == '24') {
-      return hour.toString().padStart(2, '0') + ':00'
-    }
-
-    if (hour == 0) {
-      return '12:00 AM'
-    }
-
-    if (hour < 12) {
-      return hour.toString() + ':00 AM'
-    } else if (hour == 12) {
-      return '12:00 PM'
-    }
-
-    return (hour - 12).toString() + ':00 PM'
   }
 
   async function fetchWeather() {
@@ -133,25 +102,6 @@ export default function Home() {
     setLoading(false)
   }
 
-  async function searchForCities() {
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${searchCityName}&count=8&language=en&format=json`)
-    const data = await res.json()
-    const cities: CityData[] = []
-
-    if (!data.results) return
-
-    for (let i = 0; i < data.results.length; i++) {
-      cities.push({
-        town: data.results[i].name,
-        state: data.results[i].admin1,
-        country: data.results[i].country,
-        location: [ data.results[i].latitude, data.results[i].longitude ]
-      })
-    }
-
-    setSearchCities(cities)
-  }
-
   useEffect(() => {
     async function run() {
       if (!('geolocation' in navigator)) {
@@ -175,7 +125,7 @@ export default function Home() {
       const { latitude, longitude } = position.coords
 
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
-      
+
       if (res.status != 200) {
         const location = await captureIpLocation()
 
@@ -194,163 +144,52 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    fetchWeather()
+    function thing() {
+      fetchWeather()
+    }
+
+    thing()
+    // ok to do this because it needs to rerun when those are changed and i dont feel like making better logic lmfao
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ city, tempUnit, speedUnit ])
-
-  useEffect(() => {
-    searchForCities()
-  }, [ searchCityName ])
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-
-    fetchWeather()
-  }
-
-  function handleCityNameChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSearchCityName(e.target.value)
-  }
-
-  function handleSelectSearchCity(idx: number) {
-    setCity(searchCities[idx])
-
-    fetchWeather()
-  }
-
-  function toggleClockFormat() {
-    if (clockFormat == '12') {
-      setClockFormat('24')
-    } else {
-      setClockFormat('12')
-    }
-  }
-
-  function toggleSpeedUnit() {
-    if (speedUnit == 'mph') {
-      setSpeedUnit('km/h')
-    } else {
-      setSpeedUnit('mph')
-    }
-  }
-
-  function toggleTempUnit() {
-    if (tempUnit == 'F') {
-      setTempUnit('C')
-    } else {
-      setTempUnit('F')
-    }
-  }
 
   return (
     <div className='flex flex-col md:flex-row min-h-screen p-5 font-sans bg-slate-800 gap-3'>
-      <div className='hidden md:flex flex-row md:flex-col gap-3 h-1 md:min-h-screen md:justify-between justify-center w-10fukk md:w-[8%] py-5 md:py-10 rounded-xl bg-slate-700'>
-        <div className='flex felx-row md:flex-col items-center gap-3 justify-center md:justify-start h-full'>
-          <Link href='/' className='flex flex-col items-center'><FontAwesomeIcon icon={faCloud} className='text-2xl text-slate-300'/><p className='hidden md:flex'>Weather</p></Link>
-          <Link href='/map' className='flex flex-col items-center'><FontAwesomeIcon icon={faMap} className='text-2xl text-slate-300'/><p className='hidden md:flex'>Map</p></Link>
-          <Link href='/dailymeme' className='flex flex-col items-center'><FontAwesomeIcon icon={faFaceGrinSquintTears} className='text-2xl text-slate-300'/><p className='hidden md:flex'>Meme</p></Link>
-          <Link href='/bookatlas' className='flex flex-col items-center text-center'><FontAwesomeIcon icon={faClock} className='text-2xl text-slate-300'/><p className='hidden md:flex'>Global Time</p></Link>
-          <Link href='/info' className='flex flex-col items-center'><FontAwesomeIcon icon={faBook} className='text-2xl text-slate-300'/><p className='hidden md:flex'>Info</p></Link>
-        </div>
+      <Navbar />
 
-        <div className='flex flex-col items-center gap-3 justify-center md:justify-end h-full'>
-          <button className='flex-col hidden md:flex items-center'><FontAwesomeIcon icon={faLanguage} className='text-2xl text-slate-300'/><span className='hidden md:flex'>Language</span></button>
-          <Link href='/settings' className='hidden md:flex flex-col items-center'><FontAwesomeIcon icon={faCog} className='text-2xl text-slate-300'/><span className='hidden md:flex'>Settings</span></Link>
-        </div>
-      </div>
-
-      {/* Left */}
       <div className='flex flex-col gap-3 min-h-screen md:max-w-[60%]'>
-        {/* Search bar */}
-        <div className='w-full flex flex-col md:flex-row gap-2'>
-          <form onSubmit={handleSubmit} className='w-full'>
-            <input type='text' placeholder='Enter city name' className='bg-slate-700 rounded-xl p-2 w-full placeholder-slate-500' onChange={handleCityNameChange} onFocus={() => { setInputActive(true) }} onBlur={() => { setInputActive(false) }} />
+        <SearchBar fetchWeather={fetchWeather}
+          setCity={setCity}
+          setClockFormat={setClockFormat}
+          setSpeedUnit={setSpeedUnit}
+          setTempUnit={setTempUnit}
+          clockFormat={clockFormat}
+          speedUnit={speedUnit}
+          tempUnit={tempUnit} 
+          />
 
-            {inputActive && <div className='relative'>
-              <div className='absolute w-full bg-slate-700 top-3 rounded-xl p-4 flex flex-col gap-2'>
-                {searchCities.map((itm, i) => <button key={i} className='w-full bg-slate-600 rounded-md py-2 px-4 text-left hover:bg-slate-500 transition-colors' onMouseDown={(e) => { handleSelectSearchCity(i) }}>{itm.town}, {itm.state}, {itm.country}</button> )}
-                {searchCities.length == 0 && <span>No results found.</span>}
-              </div>
-            </div>}
-          </form>
+        <MainContent loading={loading}
+          weatherData={weatherData}
+          tempUnit={tempUnit}
+          city={city}
+          />
 
-          <div className='flex gap-2 w-full md:w-auto'>
-            <button onClick={toggleClockFormat} className='bg-slate-700 rounded-xl p-2 font-bold w-full md:w-20 h-10 gap-2 flex justify-center items-center'><FontAwesomeIcon icon={faClock}/>{clockFormat}</button>
-            <button onClick={toggleSpeedUnit} className='bg-slate-700 rounded-xl p-2 font-bold w-full md:w-20 h-10 gap-2'>{speedUnit.toUpperCase()}</button>
-            <button onClick={toggleTempUnit} className='bg-slate-700 rounded-xl p-2 font-bold w-full md:w-20 h-10 flex justify-center items-center'><FontAwesomeIcon icon={faTemperature0}/>°{tempUnit}</button>
-          </div>
-        </div>
+        <HourlyForecast loading={loading}
+          weatherData={weatherData}
+          tempUnit={tempUnit}
+          clockFormat={clockFormat}
+          />
 
-        {/* Main content */}
-        <div className='flex justify-center rounded-xl p-5 h-full bg-linear-to-t from-blue-500 to-blue-400'>
-          <div className='flex justify-center gap-3 items-center'>
-            <div>
-              <p className='text-7xl md:text-9xl font-bold'>{weatherDescriptionToEmoji(weatherData.current.description)}</p>
-            </div>
-
-            <div>
-              <p className='md:text-2xl font-bold text-slate-300'>{!loading ? `${city?.town}, ${city?.state}` : 'Loading...'}</p>
-
-              <p className='text-5xl md:text-6xl font-bold'>
-                {!loading ? `${weatherData.current.temperature}°${tempUnit}` : 'Loading...'}
-                <span className='text-xl md:text-2xl font-bold text-stone-300'>
-                  <FontAwesomeIcon icon={faCaretUp}/>
-                  {!loading ? `${weatherData.daily[0].temperature.high}°${tempUnit}` : 'Loading...'} /
-                  <FontAwesomeIcon icon={faCaretDown}/>
-                  {!loading ? `${weatherData.daily[0].temperature.low}°${tempUnit}` : 'Loading...'}
-                </span>
-              </p>
-
-              <p className='text-xl md:text-2xl text-slate-300 font-bold'>Rain Chance: {!loading ? `${weatherData.current.rainChance}%` : 'Loading...'}</p>
-            </div>
-          </div>
-        </div> 
-
-        {/* Todays Forecast */}
-        <div className='flex flex-row rounded-xl bg-slate-700 p-5 gap-3 h-2/3 min-h-50 w-full overflow-x-auto'>
-          {!loading ? weatherData.hourly.map((itm, i) => <div key={i} className={`h-full min-w-30 px-4 md:gap-2 flex-col items-center justify-between py-5 flex rounded-xl hover:bg-slate-500 hover:w-[150%] transition-all ${i == 0 ? 'bg-linear-to-t from-blue-500 to-blue-400' : 'bg-slate-600'}`}>
-            <p className={`font-bold text-md ${i == 0 ? 'text-slate-300' : 'text-slate-400'}`}>{timeFormatFunction(itm.time)}</p>
-            <p className='text-3xl md:text-5xl'>{weatherDescriptionToEmoji(itm.description)}</p>
-            <p className='text-xl font-bold'>{itm.temperature}°{tempUnit}</p>
-            <p className='text-xl md:text-2xl text-slate-300'>{weatherDescriptionToString(itm.description)}</p>
-          </div>) : 'Loading...'}
-        </div>
-
-        {/* Extra Info */}
-        <div className='grid grid-cols-2 grid-rows-2 rounded-xl p-5 gap-5 bg-slate-700 h-full min-h-50 w-full'>
-          <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
-            <FontAwesomeIcon className='text-4xl flex justify-center items-center' icon={faDroplet}/>
-            <p className='text-2xl md:text-3xl font-bold flex flex-col justify-center'><span className='text-lg md:text-xl text-slate-400'>Humidity</span> <span className='text-xl md:text-3xl flex gap-3 justify-center'>{!loading ? `${weatherData.current.relativeHumidity}% RH` : 'Loading...'}</span></p>
-          </div>
-
-          <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
-            <FontAwesomeIcon className='text-4xl' icon={faCloudRain}/>
-            <p className='text-2xl md:text-3xl font-bold flex flex-col'><span className='text-lg md:text-xl text-slate-400'>Precipitation</span> <span className='text-xl md:text-3xl'>{!loading ? `${weatherData.current.rainChance}%` : 'Loading...'}</span></p>
-          </div>
-
-          <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
-            <FontAwesomeIcon className='text-4xl' icon={faWind}/>
-            <p className='text-2xl md:text-3xl font-bold flex flex-col'><span className='text-lg md:text-xl text-slate-400'>Windspeed</span> <span className='text-xl md:text-3xl'>{!loading ? `${weatherData.current.windSpeed} ${speedUnit}` : 'Loading...'}</span></p>
-          </div>
-
-          <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
-            <FontAwesomeIcon className='text-4xl' icon={faSun}/>
-            <p className='text-2xl md:text-3xl font-bold flex flex-col'><span className='text-lg md:text-xl text-slate-400'>UV Index</span><span className='text-xl md:text-3xl'> {!loading ? `${weatherData.current.uvIndex}` : 'Loading...'}</span></p>
-          </div>
-        </div>
+        <ExtraInfo loading={loading}
+          weatherData={weatherData}
+          speedUnit={speedUnit}
+          />
       </div>
 
-      {/* Right */}
-      <div className='flex flex-col rounded-xl bg-slate-700 h-screen w-full md:w-[60%]'>
-        {/* Weekly Forecast */}
-        {!loading ? weatherData.daily.map((itm, i) => <div className='bg-slate-600 rounded-xl p-5 m-3 flex-row h-full flex items-center font-bold' key={i}>
-          <p className='text-xl w-full text-slate-400 justify-center items-center flex'>{itm.weekday}</p>
-          <p className='text-xl w-full justify-center items-center gap-3 flex'>{weatherDescriptionToEmoji(itm.description)} {weatherDescriptionToString(itm.description)}</p>
-          <p className='text-xl text-slate-400 w-full justify-center items-center flex'>
-            <span className='text-orange-400'>{itm.temperature.high}°{tempUnit}</span> /
-            <span className='text-blue-400'>{itm.temperature.low}°{tempUnit}</span>
-          </p>
-        </div>) : 'Loading...'}
-      </div>
+      <DailyForecast loading={loading}
+        weatherData={weatherData}
+        tempUnit={tempUnit}
+        />
     </div>
   )
 }
