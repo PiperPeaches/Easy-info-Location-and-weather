@@ -1,6 +1,8 @@
+import type { TempUnit, WeatherData } from '@/extras/types'
+import { faCaretDown, faCaretUp, faDroplet } from '@fortawesome/free-solid-svg-icons'
 import { weatherDescriptionToString } from '@/extras/scripts'
 import { weatherDescriptionToEmoji } from '@/extras/scripts-tsx'
-import type { TempUnit, WeatherData } from '@/extras/types'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 
 interface props {
   loading: boolean,
@@ -10,15 +12,29 @@ interface props {
 
 export default function DailyForecast({ loading, weatherData, tempUnit }: props) {
   return (
-    <div className='flex flex-col rounded-xl bg-slate-700 h-screen w-full md:w-[60%]'>
-      {!loading ? weatherData.daily.map((itm, i) => <div className='bg-slate-600 rounded-xl p-5 m-3 flex-row h-full flex items-center font-bold' key={i}>
-        <p className='text-xl w-full text-slate-400 justify-center items-center flex'>{itm.weekday}</p>
-        <p className='text-xl w-full justify-center items-center gap-3 flex'>{weatherDescriptionToEmoji(itm.description)} {weatherDescriptionToString(itm.description)}</p>
+    <div className='bg-slate-700 w-full md:w-[60%] p-5 rounded-xl flex flex-col gap-3'>
+      {!loading ? weatherData.daily.map((itm, i) => <div className='bg-slate-600 rounded-xl p-5 flex-row  flex items-center font-bold' key={i}>
+        <div className='flex justify-between w-full h-20 items-center'>
+          <div className='flex items-start flex-col justify-start gap-1'>
+            <span className='text-xl font-bold'>{itm.weekday}</span>
 
-        <p className='text-xl text-slate-400 w-full justify-center items-center flex'>
-          <span className='text-orange-400'>{itm.temperature.high}°{tempUnit}</span> /
-          <span className='text-blue-400'>{itm.temperature.low}°{tempUnit}</span>
-        </p>
+            <span className='text-lg font-bold'>
+              <span className='text-orange-300'>
+                <FontAwesomeIcon icon={faCaretUp}/>
+                {!loading ? `${itm.temperature.high}°${tempUnit}` : 'Loading...'}
+              </span>
+              /
+              <span className='text-blue-300'>
+                <FontAwesomeIcon icon={faCaretDown}/>
+                {!loading ? `${itm.temperature.low}°${tempUnit}` : 'Loading...'}
+              </span>
+            </span>
+          </div>
+          <div>
+            <p className='text-5xl'>{weatherDescriptionToEmoji(itm.description)}</p>
+          </div>
+
+        </div>
       </div>) : 'Loading...'}
     </div>
   )

@@ -25,11 +25,12 @@ export interface DailyForecastItem {
 export interface HourlyForecastItem {
   time: number, // from 0-24 (2 = 2am, 14 = 2pm)
   description: WeatherDescription,
-  temperature: number
+  temperature: number,
+  visibility: number
+  rainChance: number,
 }
 
 export interface CurrentWeatherConditions {
-  rainChance: number,
   windSpeed: number,
   uvIndex: number,
   temperature: number,

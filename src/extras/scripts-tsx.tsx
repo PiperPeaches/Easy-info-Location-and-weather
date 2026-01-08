@@ -6,13 +6,13 @@ export function weatherDescriptionToEmoji(desc: WeatherDescription): React.React
   let icon
 
   switch (desc) {
-    case WeatherDescription.Clear: icon = faSun
-    case WeatherDescription.Cloudy: icon = faCloud
-    case WeatherDescription.Fog: icon = faSmog
-    case WeatherDescription.Overcast: icon = faCloudSun
-    case WeatherDescription.Rain: icon = faCloudRain
-    case WeatherDescription.Snow: icon = faSnowflake
-    case WeatherDescription.Thunderstorm: icon = faCloudBolt
+    case WeatherDescription.Clear: icon = faSun; break;
+    case WeatherDescription.Cloudy: icon = faCloud; break;
+    case WeatherDescription.Fog: icon = faSmog; break;
+    case WeatherDescription.Overcast: icon = faCloudSun; break;
+    case WeatherDescription.Rain: icon = faCloudRain; break;
+    case WeatherDescription.Snow: icon = faSnowflake; break;
+    case WeatherDescription.Thunderstorm: icon = faCloudBolt; break;
   }
 
   return <FontAwesomeIcon icon={icon} />

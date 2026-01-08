@@ -31,7 +31,7 @@ export default function MainContent({ loading, weatherData, tempUnit, city }: pr
             </span>
           </p>
 
-          <p className='text-xl md:text-2xl text-slate-300 font-bold'>Rain Chance: {!loading ? `${weatherData.current.rainChance}%` : 'Loading...'}</p>
+          <p className='text-xl md:text-2xl text-slate-300 font-bold'>Rain Chance: {!loading ? `${weatherData.hourly[0].rainChance}%` : 'Loading...'}</p>
         </div>
       </div>
     </div>
