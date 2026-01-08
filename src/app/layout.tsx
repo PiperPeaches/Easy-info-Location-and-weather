@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import './globals.css'
+import '../globals/globals.css'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Too Easy Info | Weather',
   description: 'A simple weather app so you can get the info you need, fast.'
-};
+}
 
 export const viewport: Viewport = {
   themeColor: '#1d293d'

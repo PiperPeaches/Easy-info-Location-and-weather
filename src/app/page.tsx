@@ -3,8 +3,9 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import type { WeatherData, CityData, HourlyForecastItem, DailyForecastItem, Weekday } from '../extras/types.ts'
 import { WeatherDescription } from '../extras/types.ts'
+import { wmoToDescription, weatherDescriptionToString, weekdayFromDate } from '@/extras/scripts.ts'
 
-import { faSun,faCaretDown, faLanguage,faFaceGrinSquintTears,faGlobe,faCaretUp, faSmog, faTemperature0, faClock, faCloud, faWind, faCloudSun, faCloudRain, faCloudBolt, faSnowflake, faMap, faCog, faBook, faTemperatureEmpty, faWater, faDroplet} from '@fortawesome/free-solid-svg-icons'
+import { faSun, faCaretDown, faLanguage, faFaceGrinSquintTears, faGlobe, faCaretUp, faSmog, faTemperature0, faClock, faCloud, faWind, faCloudSun, faCloudRain, faCloudBolt, faSnowflake, faMap, faCog, faBook, faTemperatureEmpty, faWater, faDroplet} from '@fortawesome/free-solid-svg-icons'
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -52,59 +53,6 @@ export default function Home() {
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition((loc) => { resolve(loc) }, reject)
     })
-  }
-
-  function weekdayFromDate(date: string): Weekday {
-    const day = new Date(date).getDay()
-    const days: Weekday[] = [ 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' ]
-
-    return days[day]
-  }
-
-  function wmoToDescription(wmo: number): WeatherDescription {
-    switch (wmo) {
-      case 0: return WeatherDescription.Clear // 'Clear sky'
-      case 1: return WeatherDescription.Overcast // 'Mainly clear, partly cloudy, and overcast'
-      case 2: return WeatherDescription.Overcast
-      case 3: return WeatherDescription.Overcast
-      case 45: return WeatherDescription.Fog // 'Fog and depositing rime fog'
-      case 48: return WeatherDescription.Fog
-      case 51: return WeatherDescription.Rain // 'Drizzle: Light, moderate, and dense intensity'
-      case 53: return WeatherDescription.Rain
-      case 55: return WeatherDescription.Rain
-      case 56: return WeatherDescription.Rain // 'freezing drizzle'
-      case 57: return WeatherDescription.Rain
-      case 61: return WeatherDescription.Rain // 'Rain: Slight, moderate and heavy intensity'
-      case 63: return WeatherDescription.Rain
-      case 65: return WeatherDescription.Rain
-      case 66: return WeatherDescription.Rain // 'Freezing Rain: Light and heavy intensity'
-      case 67: return WeatherDescription.Rain
-      case 71: return WeatherDescription.Snow // 'Snow fall: Slight, moderate, and heavy intensity'
-      case 73: return WeatherDescription.Snow
-      case 75: return WeatherDescription.Snow
-      case 77: return WeatherDescription.Snow // 'Snow grains'
-      case 80: return WeatherDescription.Rain // 'Rain showers: Slight, moderate, and violent'
-      case 81: return WeatherDescription.Rain
-      case 82: return WeatherDescription.Rain
-      case 85: return WeatherDescription.Snow // 'Snow showers slight and heavy'
-      case 86: return WeatherDescription.Snow
-      case 95: return WeatherDescription.Thunderstorm // 'Thunderstorm: Slight or moderate'
-      case 96: return WeatherDescription.Thunderstorm // 'Thunderstorm with slight and heavy hail'
-      case 99: return WeatherDescription.Thunderstorm
-      default: return WeatherDescription.Clear
-    }
-  }
-
-  function weatherDescriptionToString(desc: WeatherDescription): string {
-    switch (desc) {
-      case WeatherDescription.Clear: return 'Clear'
-      case WeatherDescription.Cloudy: return 'Cloudy'
-      case WeatherDescription.Fog: return 'Foggy'
-      case WeatherDescription.Overcast: return 'Overcast'
-      case WeatherDescription.Rain: return 'Rain'
-      case WeatherDescription.Snow: return 'Snow'
-      case WeatherDescription.Thunderstorm: return 'T-Storm'
-    }
   }
 
   function weatherDescriptionToEmoji(desc: WeatherDescription): React.ReactElement {
@@ -370,8 +318,8 @@ export default function Home() {
         {/* Extra Info */}
         <div className='grid grid-cols-2 grid-rows-2 rounded-xl p-5 gap-5 bg-slate-700 h-full min-h-50 w-full'>
           <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
-            <FontAwesomeIcon className='text-4xl' icon={faDroplet}/>
-            <p className='text-2xl md:text-3xl font-bold flex flex-col'><span className='text-lg md:text-xl text-slate-400'>Humidity</span> <span className='text-xl md:text-3xl'>{!loading ? `${weatherData.current.relativeHumidity}% RH` : 'Loading...'}</span></p>
+            <FontAwesomeIcon className='text-4xl flex justify-center items-center' icon={faDroplet}/>
+            <p className='text-2xl md:text-3xl font-bold flex flex-col justify-center'><span className='text-lg md:text-xl text-slate-400'>Humidity</span> <span className='text-xl md:text-3xl flex gap-3 justify-center'>{!loading ? `${weatherData.current.relativeHumidity}% RH` : 'Loading...'}</span></p>
           </div>
 
           <div className='bg-slate-600 flex justify-center px-12 gap-3 items-center text-slate-300 h-full w-full rounded-xl'>
@@ -388,7 +336,6 @@ export default function Home() {
             <FontAwesomeIcon className='text-4xl' icon={faSun}/>
             <p className='text-2xl md:text-3xl font-bold flex flex-col'><span className='text-lg md:text-xl text-slate-400'>UV Index</span><span className='text-xl md:text-3xl'> {!loading ? `${weatherData.current.uvIndex}` : 'Loading...'}</span></p>
           </div>
-
         </div>
       </div>
 
@@ -398,12 +345,10 @@ export default function Home() {
         {!loading ? weatherData.daily.map((itm, i) => <div className='bg-slate-600 rounded-xl p-5 m-3 flex-row h-full flex items-center font-bold' key={i}>
           <p className='text-xl w-full text-slate-400 justify-center items-center flex'>{itm.weekday}</p>
           <p className='text-xl w-full justify-center items-center gap-3 flex'>{weatherDescriptionToEmoji(itm.description)} {weatherDescriptionToString(itm.description)}</p>
-          <p className='text-xl text-slate-400 w-full justify-center items-center flex '>
+          <p className='text-xl text-slate-400 w-full justify-center items-center flex'>
             <span className='text-orange-400'>{itm.temperature.high}°{tempUnit}</span> /
             <span className='text-blue-400'>{itm.temperature.low}°{tempUnit}</span>
-            
           </p>
-  c
         </div>) : 'Loading...'}
       </div>
     </div>
